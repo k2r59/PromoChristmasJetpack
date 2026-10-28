@@ -1,7 +1,8 @@
+// Dimensions preserve each source aspect ratio and normalize the seated elf head to ~42 world pixels.
 export const VEHICLES = {
-  sled:{name:'Traîneau blindé',texture:'rider-sled',width:180,height:138,hits:2,duration:0,speed:1,giftMultiplier:1},
-  hover:{name:'Hoverboard magnétique',texture:'rider-hover',width:166,height:174,hits:1,duration:20,speed:1,giftMultiplier:1,magnet:true},
-  rocket:{name:'Fusée de Noël',texture:'rider-rocket',width:180,height:143,hits:1,duration:20,speed:1.2,giftMultiplier:2},
+  sled:{name:'Traîneau blindé',texture:'rider-sled',width:153,height:117.3,hits:2,duration:0,speed:1,giftMultiplier:1},
+  hover:{name:'Hoverboard magnétique',texture:'rider-hover',width:117,height:122.46,hits:1,duration:20,speed:1,giftMultiplier:1,magnet:true},
+  rocket:{name:'Fusée de Noël',texture:'rider-rocket',width:148,height:117.41,hits:1,duration:20,speed:1.2,giftMultiplier:2},
 };
 export const vehicleAt=index=>['sled','hover','rocket'][index%3];
 export function vehicleState(type){const spec=VEHICLES[type]||VEHICLES.sled;return{type:VEHICLES[type]?type:'sled',hits:spec.hits,remaining:spec.duration};}

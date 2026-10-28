@@ -14,3 +14,7 @@ These public sources do not provide the original course generator, physics const
 Promodev adaptations requested by the owner include three lives, recoverable hearts, letters, Christmas office obstacles, three custom vehicles, and male and female colleagues. These adaptations intentionally differ from the reference game.
 
 Community background, not official documentation: [Scientists](https://jetpackjoyride.fandom.com/wiki/Scientists) describes harmless bystanders, evasion and high-five interactions. The Promodev colleagues use original artwork and non-damaging interactions.
+
+## Final direction after screenshot review
+
+The supplied references included both original Jetpack Joyride and its sequel. The user ultimately chose the original-style endless obstacle course, with progressive acceleration and no shooting or finite levels. Promodev retains its original Christmas artwork, three lives, gift formations and vehicles. Numeric tuning is original, not a claim of exact Halfbrick logic.

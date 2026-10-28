@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {viewportSize,worldWidth} from '../src/viewport.js';
+test('world fits landscape phones, tablets and browser chrome without cropping',()=>{for(const [w,h]of [[568,320],[667,375],[844,390],[956,440],[956,340],[932,300],[1024,768],[1366,1024],[1920,1080]]){const logical=worldWidth(w,h);assert.ok(Math.abs(logical/720-w/h)<.001);assert.ok(Math.abs(logical*h/720-w)<1);}});
+test('visual viewport, offsets and keyboard take priority over layout viewport',()=>{assert.deepEqual(viewportSize({width:956,height:320,offsetLeft:0,offsetTop:40},956,440),{width:956,height:320,left:0,top:40});assert.deepEqual(viewportSize(null,844,390),{width:844,height:390,left:0,top:0});});
+
+test('short landscape transition keeps the internal world ratio around layout breakpoints',()=>{for(const height of [299,300,319,320,329,330,331,349,350,499,500,501])for(const width of [568,667,844,956])assert.ok(Math.abs(worldWidth(width,height)*height/720-width)<=height/1440+.00001);});

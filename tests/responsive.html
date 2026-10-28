@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<title>QA responsive — accueil et HUD</title>
+<style>body{background:#142638;color:white;font:14px system-ui;margin:12px}button{padding:10px;margin:3px}iframe{border:1px solid #fff;display:block;position:fixed;left:12px;top:120px}pre{position:relative;z-index:2;pointer-events:none;background:#142638ed;width:max-content;max-width:100%}pre{white-space:pre-wrap}.note{max-width:900px;color:#c6d4e4}</style>
+<button id="run">Contrôler les formats</button>
+<p class="note">Contrôle des dimensions CSS et des zones sûres simulées. Ces résultats ne remplacent pas une vérification sur iPhone physique, notamment avec le clavier et les barres Safari.</p>
+<pre id="result" role="status">Prêt</pre>
+<iframe id="view" title="Jeu soumis aux contrôles responsive" src="/" width="956" height="440"></iframe>
+<script type="module">
+const sizes=[
+ [568,320,0,0,0],[667,300,0,0,0],[844,331,47,47,21],
+ [844,390,47,47,21],[956,350,62,62,21],[956,440,62,62,21],
+ [956,320,62,62,21],[1024,768,0,0,20],[1366,1024,0,0,20],
+];
+const f=document.getElementById('view'),out=document.getElementById('result'),button=document.getElementById('run');
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const intersects=(a,b)=>a.left<b.right-1&&a.right>b.left+1&&a.top<b.bottom-1&&a.bottom>b.top+1;
+button.onclick=async()=>{
+ button.disabled=true;out.textContent='Chargement du jeu…';
+ const results=[];let restore;
+ try{
+  for(let i=0;i<100;i++){if(f.contentDocument?.querySelector('#loading.hidden')&&f.contentDocument?.querySelector('canvas'))break;await wait(100);}
+  const d=f.contentDocument,app=d.getElementById('app');
+  if(!app||!d.querySelector('#loading.hidden'))throw new Error('Le jeu ne termine pas son chargement.');
+  const ids=['menu','hud','pause','flight-hint','install-nudge','modal-backdrop'];
+  const classes=new Map(ids.map(id=>[id,d.getElementById(id).className]));
+  const fields=['score','distance','gifts','lives','letters','powerups'];
+  const contents=new Map(fields.map(id=>[id,d.getElementById(id).innerHTML]));
+  const bodyClass=d.body.className,oldWidth=f.width,oldHeight=f.height;
+  const safe=['--safe-l','--safe-r','--safe-t','--safe-b'];
+  const oldSafe=safe.map(k=>[k,app.style.getPropertyValue(k)]);
+  restore=()=>{d.body.className=bodyClass;for(const[id,c]of classes)d.getElementById(id).className=c;for(const[id,html]of contents)d.getElementById(id).innerHTML=html;for(const[k,v]of oldSafe)v?app.style.setProperty(k,v):app.style.removeProperty(k);f.width=oldWidth;f.height=oldHeight;};
+  for(const[w,h,l,r,b]of sizes){
+   f.width=w;f.height=h;app.style.setProperty('--safe-l',l+'px');app.style.setProperty('--safe-r',r+'px');app.style.setProperty('--safe-t','0px');app.style.setProperty('--safe-b',b+'px');
+   await wait(300);
+   const rect=id=>d.getElementById(id).getBoundingClientRect();
+   const visible=id=>{const e=d.getElementById(id),s=f.contentWindow.getComputedStyle(e),box=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&box.width>0&&box.height>0;};
+   const bounds=(id,failures)=>{if(!visible(id))return;const box=rect(id);if(box.left<l-2||box.right>w-r+2||box.top<-1||box.bottom>h-b+1)failures.push(id+' hors zone sûre');};
+   for(const mode of ['accueil','HUD']){
+    const playing=mode==='HUD';d.body.classList.toggle('playing',playing);d.getElementById('menu').classList.toggle('hidden',playing);d.getElementById('hud').classList.toggle('hidden',!playing);d.getElementById('pause').classList.toggle('hidden',!playing);
+    for(const id of ['flight-hint','install-nudge','modal-backdrop'])d.getElementById(id).classList.add('hidden');
+    if(playing){
+     d.getElementById('score').textContent='999999';d.getElementById('distance').textContent='99999 m';d.getElementById('gifts').textContent='999 cadeaux';
+     d.getElementById('lives').innerHTML=Array.from({length:3},()=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C8 17 2 13 2 7a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 6-6 10-10 14Z"/></svg>').join('');
+     d.getElementById('letters').innerHTML=[...'PROMODEV'].map(x=>`<b>${x}</b>`).join('');d.getElementById('powerups').textContent='HOVERBOARD MAGNÉTIQUE · 20s';
+    }
+    await new Promise(resolve=>f.contentWindow.requestAnimationFrame(()=>f.contentWindow.requestAnimationFrame(resolve)));
+    const failures=[];
+    for(const id of playing?['score','distance','gifts','lives','letters','powerups','sound','pause']:['brand','account','sound','fullscreen','play','how','install'])bounds(id,failures);
+    const canvas=d.querySelector('canvas').getBoundingClientRect();if(Math.abs(canvas.width-w)>1||Math.abs(canvas.height-h)>1||Math.abs(canvas.left)>1||Math.abs(canvas.top)>1)failures.push('canvas déborde ou décalé');
+    const actual=d.querySelector('canvas');if(Math.abs(actual.width/actual.height-w/h)>.002)failures.push('monde étiré (ratio interne)');
+    if(playing){
+     const letters=rect('letters'),score=rect('score'),controls=rect('sound');if(intersects(score,letters)||intersects(letters,controls))failures.push('HUD chevauchement');
+     if(intersects(rect('distance'),letters)||intersects(rect('gifts'),letters))failures.push('compteurs chevauchent lettres');
+    }else{
+     const footer=rect('footer');for(const id of ['play','how'])if(intersects(rect(id),footer))failures.push(id+' chevauche pied de page');
+     if(intersects(rect('play'),rect('how')))failures.push('boutons accueil chevauchés');
+     const heading=d.querySelector('#menu h1').getBoundingClientRect();if(intersects(heading,rect('brand')))failures.push('titre chevauche marque');
+    }
+    results.push(`${w}×${h} · safe ${l}/${r}/${b} · ${mode}: ${failures.join(', ')||'OK'}`);out.replaceChildren(...results.map(text=>{const row=document.createElement('p');row.style.margin='0';row.textContent=text;return row;}));
+   }
+  }
+ }catch(error){out.textContent+='\nERREUR: '+error.message;}finally{restore?.();button.disabled=false;}
+};
+</script>
+</html>

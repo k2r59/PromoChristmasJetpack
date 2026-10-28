@@ -1,6 +1,6 @@
 # PromoChristmasJetpack
 
-Christmas arcade game for Promodev, built with Phaser and Vite. Play in landscape on a phone or desktop.
+Christmas endless runner for Promodev, built with Phaser and Vite. Play in landscape on a phone or desktop.
 
 Production: https://jetpack.promo.dev
 
@@ -31,14 +31,15 @@ Use `npm run dev:worker` to test with local Cloudflare bindings. Production data
 
 ## Game rules
 
-- Three lives, occasional hearts, one red-and-gold collectible gift, and eight PROMODEV letters.
+- Endless obstacle course with gradually increasing speed. No shooting or stage objectives.
+- Three lives, occasional hearts, grid/arc gift formations and eight PROMODEV letters.
 - Seeded obstacle sections, increasing speed, recovery sections, electrical traps, missiles with warnings, and lasers that charge before activation.
 - Armoured sleigh: two impacts. Magnetic hoverboard: attraction for 20 seconds. Christmas rocket: 20 seconds of faster travel and double gift points.
 - Colleagues are harmless. Pass them on foot to earn a high-five bonus.
 
 Email profiles currently have no verification step, as requested. Entering an existing email accesses that profile. Do not treat this as verified identity or use the current scores for prize adjudication.
 
-The progression API exists, but the mission/shop UI and end-of-run progression synchronization still need completion. Scores currently synchronize through `/api/score`.
+Scores synchronize through `/api/score`. The separate long-term mission/shop API exists, but its UI and end-of-run progression synchronization still need completion.
 
 ## Sources and assets
 
@@ -50,4 +51,6 @@ The asset preparation scripts record the original generation paths for provenanc
 
 Open `/tests/visual-characters.html` on the Vite development server to compare walking, greeting and crouching with the same body parts. The fixture also exercises vehicle landings and audio pause, mute and restart behavior. It is not included in the production build.
 
-Original ElevenLabs effects are checked into `public/audio/` and cached for offline play. Prompts are in `art-source/audio-prompts.json`. Regeneration requires `ELEVENLABS_API_KEY` in the local environment and `python3 scripts/generate-audio.py`; the browser never calls ElevenLabs or receives an API key. Sound begins after a player gesture and can be muted from the toolbar.
+Runtime audio now uses selected Kenney Sci-Fi and Interface effects under CC0; generated ElevenLabs effects were retired after user feedback. Sources, package checksums and output checksums are recorded in `art-source/curated-audio-receipt.json`; original licenses ship in `public/licenses/`. There is no continuous engine or background melody. Audition effects at `/tests/audio-review.html` on the dev server.
+
+The responsive fixture `/tests/responsive.html` checks menu and HUD geometry across phone and tablet dimensions, including simulated safe-area insets. These are browser-layout checks, not certification on physical iPhone hardware. `src/viewport.js` uses the visual viewport for both the canvas and interface, including dynamic browser chrome and the software keyboard.

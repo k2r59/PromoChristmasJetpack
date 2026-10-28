@@ -1,6 +1,6 @@
 export const FLOOR = 631;
 export const CEILING = 100;
-export function speedAt(seconds) { return Math.min(430, 230 + seconds * 2.4); }
+export function speedAt(seconds) { return 230 + 330 * (1 - Math.exp(-Math.max(0,seconds) / 110)); }
 export function integrateFlight(y, velocity, thrust, dt) {
   const nextVelocity = Math.max(-300, Math.min(350, velocity + (thrust ? -850 : 680) * dt));
   const nextY = Math.max(CEILING, Math.min(FLOOR - 28, y + nextVelocity * dt));

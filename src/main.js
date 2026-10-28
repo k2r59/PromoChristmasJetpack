@@ -5,6 +5,7 @@ import '@fontsource/nunito/latin-800.css';
 import './style.css';
 import { createTextures } from './textures.js';
 import { integrateFlight, speedAt, scoreFor, intersects, FLOOR } from './rules.js';
+import {mountViewport,viewportSize,worldWidth} from './viewport.js';
 import { Sound } from './audio.js';
 import { GameEffects } from './effects.js';
 import {VEHICLES,vehicleAt,vehicleState,hitVehicle,vehicleFloorY,VEHICLE_ORIGIN,groundedVehiclePose} from './vehicles.js';
@@ -39,7 +40,7 @@ function setMode(value){if(value==='over')sound.stopEngine();else if(value!=='pl
 function start(){closeModal();sound.unlock();sound.start();scene.startRun();setMode('playing');$('flight-hint').classList.remove('hidden');}
 function home(){closeModal();scene.resetMenu();setMode('menu');$('flight-hint').classList.add('hidden');}
 function pause(){if(mode!=='playing')return;scene.held=false;setMode('paused');modal(`<div class="eyebrow">ON REPREND SON SOUFFLE</div><h2>Une petite pause.</h2><p>Les cadeaux peuvent attendre une minute.</p><button id="resume" class="primary"><span class="play-triangle"></span> Reprendre le vol</button><button id="return-home" class="text-button">Retour à l’accueil</button>`);$('resume').onclick=()=>{closeModal();setMode('playing');};$('return-home').onclick=home;}
-function how(){modal(`${closeButton}<div class="eyebrow">LE BRIEF DU LUTIN</div><h2>Un doigt. Toute la magie.</h2><div class="instructions"><div class="instruction"><span class="instruction-number">01</span><div><strong>Maintenez pour prendre de la hauteur.</strong><p>Le doigt, la souris ou la barre espace activent le jetpack.</p></div></div><div class="instruction"><span class="instruction-number">02</span><div><strong>Relâchez pour redescendre.</strong><p>Évitez les photocopieurs, câbles et petits drones.</p></div></div><div class="instruction"><span class="instruction-number">03</span><div><strong>Suivez les cadeaux.</strong><p>5 cadeaux de suite : +200 points et les guirlandes s’illuminent.</p></div></div></div><button id="understood" class="primary">À moi de jouer <span>↗</span></button>`);bindClose();$('understood').onclick=()=>{closeModal();requestPlay();};}
+function how(){modal(`${closeButton}<div class="eyebrow">LE BRIEF DU LUTIN</div><h2>Un doigt. Toute la magie.</h2><div class="instructions"><div class="instruction"><span class="instruction-number">01</span><div><strong>Maintenez pour prendre de la hauteur.</strong><p>Le doigt, la souris ou la barre espace activent le jetpack.</p></div></div><div class="instruction"><span class="instruction-number">02</span><div><strong>Relâchez pour redescendre.</strong><p>Évitez les pièges électriques, les missiles et les obstacles au sol.</p></div></div><div class="instruction"><span class="instruction-number">03</span><div><strong>Allez toujours plus loin.</strong><p>Le parcours accélère progressivement. Récupérez les cadeaux et gardez vos trois vies !</p></div></div></div><button id="understood" class="primary">À moi de jouer <span>↗</span></button>`);bindClose();$('understood').onclick=()=>{closeModal();requestPlay();};}
 function requestPlay(){if(profile){start();return;}showSignup();}
 function showSignup(){modal(`${closeButton}<div class="eyebrow">PROMODEV PRÉSENTE</div><h2>Votre nuit commence ici.</h2><p>Une adresse e-mail, un profil unique.<br>Retrouvez votre meilleur score à chaque visite.</p><form id="signup-form" novalidate><label for="email">Votre adresse e-mail</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="vous@exemple.fr" required maxlength="254"/><p class="form-note">Sans mot de passe ni code de vérification.</p><p id="form-error" role="alert"></p><button class="primary" id="signup-submit" type="submit">Entrer dans la magie <span>↗</span></button></form><p class="privacy-note">Utilisée uniquement pour votre profil de jeu.<br>Aucun e-mail publicitaire. Adresse non vérifiée.</p>`);bindClose();$('signup-form').onsubmit=async e=>{e.preventDefault();const input=$('email');if(!input.validity.valid){$('form-error').textContent='Indiquez une adresse e-mail valide.';input.focus();return;}const button=$('signup-submit');button.disabled=true;button.textContent='Préparation de votre profil…';try{const response=await fetch('/api/profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:input.value.trim()})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Le profil n’a pas pu être créé.');profile=data.profile;save('noel-profile',profile);best=profile.best||0;save('noel-best',best);$('best').textContent=best.toLocaleString('fr-FR');updateProfile();start();}catch(err){$('form-error').textContent=err.message==='Failed to fetch'?'Connexion indisponible. Réessayez quand le réseau revient.':err.message;button.disabled=false;button.innerHTML='Entrer dans la magie <span>↗</span>';}};}
 function updateProfile(){ $('account').textContent=profile?'Mon profil':'S’inscrire'; }
@@ -63,7 +64,7 @@ class FlightScene extends Phaser.Scene {
     this.load.on('loaderror',()=>toast('Une illustration n’a pas pu se charger. Rechargez la page.'));
   }
   create(){
-    scene=this;this.W=this.scale.width;this.held=false;this.elapsed=0;this.distance=0;this.score=0;this.obstacles=[];this.gifts=[];this.pickups=[];this.particles=[];this.scroll=0;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    scene=this;const v=viewportSize(window.visualViewport,window.innerWidth,window.innerHeight);this.scale.resize(worldWidth(v.width,v.height),720);this.W=this.scale.width;this.held=false;this.elapsed=0;this.distance=0;this.score=0;this.obstacles=[];this.gifts=[];this.pickups=[];this.particles=[];this.scroll=0;this.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
     createTextures(this);this.parallax=[];
     const layer=(key,width,height,y,speed,depth,mirror=false)=>{const items=[];for(let i=0;i<Math.ceil(Math.max(this.W,3200)/width)+3;i++)items.push(this.add.image(i*width,y,key).setOrigin(0,0).setDisplaySize(width,height).setDepth(depth).setFlipX(mirror&&i%2===1));this.parallax.push({items,width,speed,offset:0});};
     layer('city',1350,900,-230,.08,0,true);layer('office-frame',540,720,0,.28,2);
@@ -91,10 +92,10 @@ class FlightScene extends Phaser.Scene {
   }
   addDecor(x){
     const sequence=['reception','lounge','wrapping','lounge','reception','wrapping'];const key=sequence[this.decorIndex++%sequence.length];
-    const h=key==='reception'?240:key==='lounge'?205:205;const source=this.textures.get(key).getSourceImage();const w=h*source.width/source.height;
+    const h=key==='reception'?170:150;const source=this.textures.get(key).getSourceImage();const w=h*source.width/source.height;
     const baseline=FLOOR-14;
     const shadow=this.add.image(x+w*.5,baseline-2,'contact-shadow').setDisplaySize(w*.94,28).setDepth(2.8);
-    const sprite=this.add.image(x,baseline,key).setOrigin(0,1).setDisplaySize(w,h).setDepth(3).setTint(0xaab8c9);sprite.contactShadow=shadow;this.decor.push(sprite);
+    const sprite=this.add.image(x,baseline,key).setOrigin(0,1).setDisplaySize(w,h).setDepth(3).setTint(0x7890a9).setAlpha(.78);sprite.contactShadow=shadow;this.decor.push(sprite);
     return x+w+170+(this.decorIndex%3)*95;
   }
   resetMenu(){this.clearRun();this.held=false;this.elf.setVisible(true).setDisplaySize(350,350*this.elf.height/this.elf.width).setAlpha(1).setAngle(-7);this.runner.setVisible(false);this.sled.setVisible(false);this.bubble.setVisible(false);this.aura.clear();this.warning.setVisible(false);this.heroGifts.forEach(g=>g.setVisible(true));this.glow.setAlpha(.23).setDisplaySize(430,430);}
@@ -124,9 +125,11 @@ class FlightScene extends Phaser.Scene {
     else if(type==='zapper'||type==='laser'){sprite=this.add.image(x,pattern.centerY,'zapper-art').setDisplaySize(85,220).setAngle(pattern.angle);box={w:40,h:180,ox:-20,oy:-90};}
     else if(type!=='rest'){sprite=this.add.image(x,430,'drone-art').setDisplaySize(130,90);box={w:78,h:42,ox:-39,oy:-21};}
     if(sprite){sprite.setDepth(7);this.obstacles.push({sprite,type,box,baseY:sprite.y,passed:false,hit:false,rotating:pattern.rotating,age:0});}
-    const shape=index%4;const giftCount=shape===3?8:6;
-    for(let i=0;i<giftCount;i++){let y=pattern.safeY;if(shape===0)y+=Math.sin(i/5*Math.PI)*-60;else if(shape===1)y+=(i%3-1)*24;else if(shape===2)y+=(i-2)*13;
-      const s=this.makeGift(x-270+i*65,y,(index+i)%4,53).setDepth(6).setAngle(-6+i%3*6);this.gifts.push({sprite:s,baseY:y,phase:i*.7});}
+    const shape=index%3,cols=shape===1?6:4,rows=shape===1?1:3;
+    for(let col=0;col<cols;col++)for(let row=0;row<rows;row++){
+      const y=pattern.safeY+(row-(rows-1)/2)*38+(shape===1?Math.sin(col/5*Math.PI)*-65:0);
+      const giftX=x-290+col*43;const s=this.makeGift(giftX,y,0,34).setDepth(6);this.gifts.push({sprite:s,baseY:y,phase:0});
+    }
     if(index%3===1&&!this.letterSlots.every(Boolean)){const slot=this.letterCursor++%8;this.pickup('letter',x-110,pattern.safeY-45,slot);}
     if(index%6===4)this.pickup('heart',x-80,pattern.safeY+30);
     if(index%10===7)this.pickup('vehicle-token',x-100,pattern.safeY-45);
@@ -194,20 +197,21 @@ class FlightScene extends Phaser.Scene {
       }
       if(mode==='playing'){
         for(let i=this.gifts.length-1;i>=0;i--){const g=this.gifts[i];g.sprite.x-=move*dt;if(!g.attracted)g.sprite.y=g.baseY+Math.sin(t*2+g.phase)*5;const d=Phaser.Math.Distance.Between(this.elf.x+14,this.elf.y,g.sprite.x,g.sprite.y);if(this.magnet>0&&d<210){g.attracted=true;g.sprite.x=Phaser.Math.Linear(g.sprite.x,this.elf.x+14,dt*8);g.sprite.y=Phaser.Math.Linear(g.sprite.y,this.elf.y,dt*8);}
-          if(d<43){this.collected++;if(this.vehicle&&VEHICLES[this.ride.type].giftMultiplier===2)this.extraScore+=50;this.stats.gifts=this.collected;if(g.attracted)this.stats.magnetGifts++;this.chain++;sound.collect(this.chain-1);this.burst(g.sprite.x,g.sprite.y,7);g.sprite.destroy();this.gifts.splice(i,1);if(this.chain===5){this.chain=0;this.bonuses++;this.lightBonus=2.4;sound.bonus();}}else if(g.sprite.x<-40){this.chain=0;g.sprite.destroy();this.gifts.splice(i,1);}}
+          if(d<31){this.collected++;if(this.vehicle&&VEHICLES[this.ride.type].giftMultiplier===2)this.extraScore+=50;this.stats.gifts=this.collected;if(g.attracted)this.stats.magnetGifts++;this.chain++;sound.collect(this.chain-1);this.burst(g.sprite.x,g.sprite.y,7);g.sprite.destroy();this.gifts.splice(i,1);if(this.chain===5){this.chain=0;this.bonuses++;this.lightBonus=2.4;sound.bonus();}}else if(g.sprite.x<-40){this.chain=0;g.sprite.destroy();this.gifts.splice(i,1);}}
         for(let i=this.pickups.length-1;i>=0;i--){const p=this.pickups[i];p.sprite.x-=move*dt;p.sprite.y=p.baseY+Math.sin(t*2.5)*8;if(Phaser.Math.Distance.Between(this.elf.x+14,this.elf.y,p.sprite.x,p.sprite.y)<50){this.collectPickup(p);p.sprite.destroy();this.pickups.splice(i,1);}else if(p.sprite.x<-60){p.sprite.destroy();this.pickups.splice(i,1);}}
       }
       this.updateColleagues(dt,t,move);
-      this.score=scoreFor(this.distance,this.collected,this.bonuses)+this.extraScore;if(!this.lastHud||time-this.lastHud>100){this.updateHud();this.lastHud=time;}sound.ambience(this.elapsed);
+
+      this.score=scoreFor(this.distance,this.collected,this.bonuses)+this.extraScore;if(!this.lastHud||time-this.lastHud>100){this.updateHud();this.lastHud=time;}
     }else if(mode!=='menu')this.runner.anims.pause();
     sound.update({active:mode==='playing',thrust:this.held,vehicle:this.vehicle,grounded:this.grounded,warning:this.missileWarning>0,seconds:this.elapsed});
     this.effects.update(dt,mode==='playing'?this.obstacles:[],mode==='playing'||mode==='over');
     if(mode!=='paused')for(let i=this.particles.length-1;i>=0;i--){const p=this.particles[i];p.life-=dt;p.s.x+=p.vx*dt;p.s.y+=p.vy*dt;p.s.alpha=Math.max(0,p.life/p.max);if(p.life<=0){p.s.destroy();this.particles.splice(i,1);}}
   }
 }
-const width=()=>Math.max(960,Math.round(window.innerWidth/window.innerHeight*720));
-game=new Phaser.Game({type:Phaser.CANVAS,parent:'game',width:width(),height:720,backgroundColor:'#091d25',transparent:false,render:{antialias:true,powerPreference:'high-performance'},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},scene:FlightScene,fps:{target:60,forceSetTimeOut:false},audio:{noAudio:true}});
-window.addEventListener('resize',()=>{if(!scene)return;const w=width();game.scale.setGameSize(w,720);scene.W=w;scene.tint.width=w;scene.floor.width=w;if(mode==='playing')pause();});
+const initialViewport=viewportSize(window.visualViewport,window.innerWidth,window.innerHeight);
+mountViewport($('app'),v=>{if(!game||!scene)return;const w=worldWidth(v.width,v.height);game.scale.resize(w,720);scene.W=w;scene.tint.width=w;scene.floor.width=w;scene.elf.x=Math.min(310,w*.24);if(v.width<v.height&&mode==='playing')pause();});
+game=new Phaser.Game({type:Phaser.CANVAS,parent:'game',width:worldWidth(initialViewport.width,initialViewport.height),height:720,backgroundColor:'#091d25',transparent:false,render:{antialias:true,powerPreference:'high-performance'},scale:{mode:Phaser.Scale.NONE,autoCenter:Phaser.Scale.NO_CENTER},scene:FlightScene,fps:{target:60,forceSetTimeOut:false},audio:{noAudio:true}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 document.addEventListener('keydown',e=>{if(e.code==='Tab'&&!$('modal-backdrop').classList.contains('hidden')){const items=[...$('modal').querySelectorAll('button:not(:disabled),input')];const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}if(e.target instanceof HTMLInputElement)return;if(e.code==='Space'&&mode==='playing'){e.preventDefault();scene.held=true;}else if((e.code==='Escape'||e.code==='KeyP')&&mode==='playing'){e.preventDefault();pause();}else if(e.code==='Escape'&&mode==='paused'){closeModal();setMode('playing');}else if(e.code==='Escape'&&mode==='menu')closeModal();});document.addEventListener('keyup',e=>{if(e.code==='Space'&&scene)scene.held=false;});
 $('play').onclick=requestPlay;$('how').onclick=how;$('pause').onclick=pause;$('brand').onclick=()=>{if(mode==='playing')pause();else if(mode==='menu')return;else home();};

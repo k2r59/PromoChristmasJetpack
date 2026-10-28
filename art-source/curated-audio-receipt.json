@@ -1,0 +1,54 @@
+{
+  "license": "CC0-1.0",
+  "author": "Kenney",
+  "sources": [
+    "https://kenney.nl/assets/sci-fi-sounds",
+    "https://kenney.nl/assets/interface-sounds"
+  ],
+  "package_sha256": {
+    "scifi": "119340f351a5098ad814f78719438c0da355a9ce8a4c8a3af6a8d48aa3d49e04",
+    "interface": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232"
+  },
+  "files": {
+    "gift": {
+      "source": "interface/Audio/glass_001.ogg",
+      "source_sha256": "183eebee20eb0a532b0b85104d139cbf2673eb66d95c3cc733ac9ea98362e7e8",
+      "output_sha256": "f8e5c09d4da4f00bf5d0662408d97146ae5b317f2ab08db767f1c657ae383763"
+    },
+    "bonus": {
+      "source": "interface/Audio/confirmation_001.ogg",
+      "source_sha256": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+      "output_sha256": "8929f077640227073519b4ce700be6cf895122174974a0040eb8a85eb3757b8b"
+    },
+    "electric": {
+      "source": "scifi/Audio/impactMetal_000.ogg",
+      "source_sha256": "956c6612a256aa1a67a2327fffe2454f6b1d82e4c1c2be28fd66916335d5b1d6",
+      "output_sha256": "448034014ebd041e6a7f9f8a6fda22f5beac831e5721034dc6cdf6fc28e063e1"
+    },
+    "explosion": {
+      "source": "scifi/Audio/lowFrequency_explosion_000.ogg",
+      "source_sha256": "3cb48d86dab63140cfb9aaeea4d4a6846abaca5831d157d8adbec0490da26343",
+      "output_sha256": "ac1046b0ea2cd876d2e97f15131eeb4a5fa754b157870cad9bd398588e134b38"
+    },
+    "shield": {
+      "source": "scifi/Audio/forceField_000.ogg",
+      "source_sha256": "c2916f2a062c8ddd1aca2826d134fe90847037db31342726ffb0f9097afe339c",
+      "output_sha256": "11dc9eb89c02c1a0058caf8f134fcb8b458a9539820c95bd44d09eb9857ba268"
+    },
+    "warning": {
+      "source": "interface/Audio/question_001.ogg",
+      "source_sha256": "abb8f9e4eb2071491b0b15f84ee302386b1847609310c1b000ae174639a6cc5a",
+      "output_sha256": "dd355c7dd3a2bde6e5453e584f0cba4043ca17c80fa900257510d5f15e99f7c0"
+    },
+    "fail": {
+      "source": "interface/Audio/error_001.ogg",
+      "source_sha256": "46e67425d16339772e8d328fb36a49426c9467418686e11beeb71ff84b0f6433",
+      "output_sha256": "9b2bd9371668e0b1d65aaff13a2c17e03650aa317c7b03ea5eb808a8422c37ff"
+    },
+    "missile": {
+      "source": "scifi/Audio/laserSmall_003.ogg",
+      "source_sha256": "cfa4391ca280933f567ce81c646b16f7cb2a090866eae674159a20f07641833c",
+      "output_sha256": "90dc18934b2d5873f36c25c75b76dcd1a9863f9e8577851e1c903f30b29d51e0"
+    }
+  }
+}
