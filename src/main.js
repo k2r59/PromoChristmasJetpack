@@ -8,9 +8,9 @@ import { integrateFlight, speedAt, scoreFor, intersects, FLOOR } from './rules.j
 import {mountViewport,viewportSize,worldWidth} from './viewport.js';
 import { Sound } from './audio.js';
 import { GameEffects } from './effects.js';
-import {VEHICLES,vehicleAt,vehicleState,hitVehicle,vehicleFloorY,VEHICLE_ORIGIN,groundedVehiclePose} from './vehicles.js';
+import {integrateVehicle,VEHICLES,vehicleAt,vehicleState,hitVehicle,vehicleFloorY,VEHICLE_ORIGIN,groundedVehiclePose} from './vehicles.js';
 import {PARTS,createColleague,animateColleague} from './colleagues.js';
-import {coursePattern,beamEnds,touchesBeam} from './course.js';
+import {missileSalvo,coursePattern,beamEnds,touchesBeam} from './course.js';
 import {BRAND,MAX_LIVES,ITEMS,initialProgress,normalizeProgress,previewMissions,applyRun,starsNeeded,takeHit} from '../shared/progression.js';
 
 const $ = id => document.getElementById(id);
@@ -101,7 +101,7 @@ class FlightScene extends Phaser.Scene {
   resetMenu(){this.clearRun();this.held=false;this.elf.setVisible(true).setDisplaySize(350,350*this.elf.height/this.elf.width).setAlpha(1).setAngle(-7);this.runner.setVisible(false);this.sled.setVisible(false);this.bubble.setVisible(false);this.aura.clear();this.warning.setVisible(false);this.heroGifts.forEach(g=>g.setVisible(true));this.glow.setAlpha(.23).setDisplaySize(430,430);}
   clearRun(){this.effects?.clear();this.colleagues?.forEach(c=>c.sprite.destroy());this.colleagues=[];this.shieldBurst=0;for(const list of [this.obstacles,this.gifts,this.pickups])list.forEach(o=>o.sprite.destroy());this.particles.forEach(p=>p.s.destroy());this.obstacles=[];this.gifts=[];this.pickups=[];this.particles=[];}
   startRun(){
-    this.clearRun();this.elapsed=0;this.distance=0;this.collected=0;this.chain=0;this.bonuses=0;this.extraScore=0;this.score=0;this.worldDistance=0;this.patternIndex=0;this.courseSeed=crypto.getRandomValues(new Uint32Array(1))[0];this.vy=0;this.held=false;this.lives=MAX_LIVES;this.invulnerable=1;this.shield=progress.owned.includes('shield-start')?8:0;this.magnet=0;this.vehicle=false;this.ride=null;this.nextColleague=3;this.letterSlots=Array(8).fill(false);this.letterCursor=0;this.letterReset=0;this.nextMissile=14;this.missileWarning=0;this.grounded=false;this.runId=crypto.randomUUID();this.finished=false;this.missionAnnounced=new Set();this.runProgress=structuredClone(progress);
+    this.clearRun();this.elapsed=0;this.distance=0;this.collected=0;this.chain=0;this.bonuses=0;this.extraScore=0;this.score=0;this.worldDistance=0;this.patternIndex=0;this.courseSeed=crypto.getRandomValues(new Uint32Array(1))[0];this.vy=0;this.held=false;this.lives=MAX_LIVES;this.invulnerable=1;this.shield=progress.owned.includes('shield-start')?8:0;this.magnet=0;this.vehicle=false;this.ride=null;this.nextColleague=3;this.letterSlots=Array(8).fill(false);this.letterCursor=0;this.letterReset=0;this.wasHeld=false;this.salvoLeft=0;this.nextMissile=14;this.missileWarning=0;this.grounded=false;this.runId=crypto.randomUUID();this.finished=false;this.missionAnnounced=new Set();this.runProgress=structuredClone(progress);
     this.stats={distance:0,gifts:0,games:1,letters:0,obstacles:0,ground:0,air:0,hearts:0,magnetGifts:0,vehicleDistance:0,sets:0,nearMisses:0,shieldHits:0};
     this.elf.setVisible(true).setPosition(Math.min(310,this.W*.24),340).setDisplaySize(112,112*this.elf.height/this.elf.width).setAngle(0).setAlpha(1);this.runner.setVisible(false);this.sled.setVisible(false);this.heroGifts.forEach(g=>g.setVisible(false));this.glow.setDisplaySize(150,150);this.makePattern(this.W+120);this.updateHud();
   }
@@ -119,8 +119,11 @@ class FlightScene extends Phaser.Scene {
 
   pickup(type,x,y,index){const texture=type==='letter'?`letter-${BRAND[index]}`:type;const sprite=this.add.image(x,y,texture).setScale(type==='letter'?.67:.65).setDepth(7);this.pickups.push({type,sprite,baseY:y,index});}
   makePattern(x){
-    const index=this.patternIndex++,pattern=coursePattern(index,this.courseSeed),type=pattern.type;let sprite,box;
-    if(['printer','trolley','wrapper'].includes(type)){const sizes={printer:[170,205],trolley:[145,215],wrapper:[195,165]};const [w,h]=sizes[type];sprite=this.add.image(x,FLOOR,`${type}-art`).setOrigin(.5,1).setDisplaySize(w,h);box={w:w*.72,h:h*.86,ox:-w*.36,oy:-h*.86};}
+    const index=this.patternIndex++,pattern=coursePattern(index,this.courseSeed);
+    const sledRide=this.vehicle&&this.ride.type==='sled';
+    if(sledRide){pattern.safeY=480;if(pattern.type==='laser'||pattern.type==='zapper'){pattern.type='zapper';pattern.centerY=245;pattern.angle=90;pattern.rotating=false;}}
+    const type=pattern.type;let sprite,box;
+    if(['printer','trolley','wrapper'].includes(type)){const sizes={printer:[170,205],trolley:[145,215],wrapper:[195,165]};const [fullWidth,fullHeight]=sizes[type],scale=sledRide?.65:1,w=fullWidth*scale,h=fullHeight*scale;sprite=this.add.image(x,FLOOR,`${type}-art`).setOrigin(.5,1).setDisplaySize(w,h);box={w:w*.72,h:h*.86,ox:-w*.36,oy:-h*.86};}
     else if(type==='cable'){sprite=this.add.image(x,0,'cable-art').setOrigin(.5,0).setDisplaySize(120,260);box={w:50,h:306,ox:-23,oy:0};}
     else if(type==='zapper'||type==='laser'){sprite=this.add.image(x,pattern.centerY,'zapper-art').setDisplaySize(85,220).setAngle(pattern.angle);box={w:40,h:180,ox:-20,oy:-90};}
     else if(type!=='rest'){sprite=this.add.image(x,430,'drone-art').setDisplaySize(130,90);box={w:78,h:42,ox:-39,oy:-21};}
@@ -151,7 +154,7 @@ class FlightScene extends Phaser.Scene {
     if(p.type==='letter'&&!this.letterSlots[p.index]){this.letterSlots[p.index]=true;this.stats.letters++;this.extraScore+=100;sound.collect(p.index);toast(`${BRAND[p.index]} récupéré !`);if(this.letterSlots.every(Boolean)){this.stats.sets++;this.extraScore+=1500;this.letterReset=5;this.lightBonus=4;this.activateVehicle();toast('PROMODEV complet · +1 500 pts · Véhicule !');}}
     this.burst(p.sprite.x,p.sprite.y,15,0xffe092);
   }
-  activateVehicle(){const type=vehicleAt(this.vehicleIndex++);this.ride=vehicleState(type);this.vehicle=true;this.invulnerable=1.5;const spec=VEHICLES[type];this.sled.setTexture(spec.texture).setDisplaySize(spec.width,spec.height);sound.bonus();toast(`${spec.name} · ${type==='sled'?'2 chocs absorbés':type==='hover'?'aimant pendant 20 s':'cadeaux ×2 pendant 20 s'}`);}
+  activateVehicle(){const type=vehicleAt(this.vehicleIndex++);this.ride=vehicleState(type);this.vehicle=true;this.invulnerable=1.5;this.vy=0;this.wasHeld=this.held;for(const o of this.obstacles){if(o.sprite.x>this.elf.x-200){o.hit=true;o.sprite.setAlpha(.25);}}const spec=VEHICLES[type];this.sled.setTexture(spec.texture).setDisplaySize(spec.width,spec.height);sound.bonus();toast(`${spec.name} · ${type==='sled'?'Appuyez pour sauter · 2 chocs':type==='hover'?'Vol réactif · aimant 20 s':'Anticipez le vol · cadeaux ×2'}`);}
   updateColleagues(dt,t,move){
     if(this.elapsed>=this.nextColleague){this.nextColleague=this.elapsed+5+Math.random()*4;const key=Math.random()<.5?'man':'woman';this.colleagues.push(createColleague(this,key,this.W+80,FLOOR));}
     for(let i=this.colleagues.length-1;i>=0;i--){const c=this.colleagues[i],s=c.sprite;const dx=s.x-this.elf.x;const danger=this.obstacles.some(o=>!o.hit&&Math.abs(o.sprite.x-s.x)<140&&['missile','printer','trolley','wrapper'].includes(o.type));
@@ -177,7 +180,7 @@ class FlightScene extends Phaser.Scene {
       if(this.vehicle&&this.ride.type!=='sled'){this.ride.remaining=Math.max(0,this.ride.remaining-dt);if(this.ride.remaining===0){this.vehicle=false;this.ride=null;this.invulnerable=Math.max(this.invulnerable,.7);toast('Retour au jetpack !');}}
       this.invulnerable=Math.max(0,this.invulnerable-dt);this.shield=Math.max(0,this.shield-dt);this.magnet=Math.max(0,this.magnet-dt);if(this.vehicle&&VEHICLES[this.ride.type].magnet)this.magnet=Math.max(this.magnet,.2);
       if(this.letterReset>0){this.letterReset-=dt;if(this.letterReset<=0){this.letterSlots.fill(false);this.letterCursor=0;}}
-      const flight=integrateFlight(this.elf.y,this.vy,this.held,dt);this.elf.y=this.vehicle?Math.min(flight.y,vehicleFloorY(this.ride.type,FLOOR)):flight.y;this.vy=this.elf.y<flight.y?0:flight.velocity;const onGround=this.elf.y>=FLOOR-28-.5&&!this.held&&!this.vehicle;
+      const flight=this.vehicle?integrateVehicle(this.ride.type,this.elf.y,this.vy,this.held,this.wasHeld,dt):integrateFlight(this.elf.y,this.vy,this.held,dt);this.wasHeld=this.held;this.elf.y=this.vehicle?Math.min(flight.y,vehicleFloorY(this.ride.type,FLOOR)):flight.y;this.vy=this.elf.y<flight.y?0:flight.velocity;const onGround=this.elf.y>=FLOOR-28-.5&&!this.held&&!this.vehicle;
       if(onGround&&!this.grounded)this.burst(this.elf.x,FLOOR,6,0xb4c7d6);this.grounded=onGround;
       this.stats[onGround?'ground':'air']+=move*dt/12;if(this.vehicle)this.stats.vehicleDistance+=move*dt/12;
       this.elf.setVisible(!onGround&&!this.vehicle);this.runner.setVisible(onGround).setPosition(this.elf.x+10,FLOOR).setAlpha(this.invulnerable>0&&!this.reduced?.5+Math.sin(t*28)*.3:1);
@@ -186,9 +189,19 @@ class FlightScene extends Phaser.Scene {
       this.elf.angle=Phaser.Math.Linear(this.elf.angle,this.held?-13:Math.min(20,this.vy*.045),.12);if(this.vehicle){const pose=groundedVehiclePose(this.ride.type,this.elf.y,FLOOR,this.elf.angle*.25);this.elf.y=pose.y;this.sled.setPosition(this.elf.x,pose.y).setAngle(pose.angle);}this.sled.setVisible(this.vehicle);
       this.glow.setPosition(this.elf.x-30,this.elf.y+5).setDisplaySize(150,150).setAlpha(this.held?.2:.03);if(this.held||this.vehicle)this.exhaust();
       this.aura.clear();this.shieldBurst=Math.max(0,this.shieldBurst-dt);const bubbleOn=this.shield>0||this.shieldBurst>0;const swell=this.shieldBurst>0?1+(.4-this.shieldBurst)*.7:1;this.bubble.setVisible(bubbleOn).setPosition(this.elf.x+8,this.elf.y).setDisplaySize((144+Math.sin(t*2)*2)*swell,(150-Math.sin(t*2)*2)*swell).setAlpha(this.shieldBurst>0?this.shieldBurst/.4:this.shield<2?.5+this.shield*.22:.92);if(this.magnet>0){this.aura.lineStyle(2,0xffd964,.25);this.aura.strokeCircle(this.elf.x+8,this.elf.y,100+(Math.sin(t*4)+1)*12);}
-      if(this.elapsed>7)$('flight-hint').classList.add('hidden');this.spawnDistance-=move*dt;if(this.spawnDistance<=0)this.makePattern(this.W+130);
-      if(this.distance>300&&this.elapsed>=this.nextMissile&&this.missileWarning<=0&&!this.obstacles.some(o=>!o.hit&&Math.abs(o.sprite.x-this.elf.x)<330)){this.missileWarning=1.7;this.missileY=Phaser.Math.Clamp(this.elf.y,150,560);this.nextMissile=this.elapsed+Math.max(7,16-this.elapsed/45)+Math.random()*3;}
-      if(this.missileWarning>0){this.missileWarning-=dt;if(this.missileWarning>1)this.missileY=Phaser.Math.Clamp(this.elf.y,150,560);this.warning.setVisible(true).setPosition(this.W-52,this.missileY).setAlpha(Math.sin(t*18)>.1?1:.5);if(this.missileWarning<=0){this.warning.setVisible(false);sound.missile();const s=this.add.image(this.W+65,this.missileY,'missile-art').setDisplaySize(120,55).setDepth(7);this.obstacles.push({sprite:s,type:'missile',box:{w:85,h:30,ox:-42,oy:-15},baseY:s.y,passed:false,hit:false});}}
+      if(this.elapsed>7)$('flight-hint').classList.add('hidden');this.spawnDistance-=move*dt;if(this.spawnDistance<=0&&(this.distance<=300||this.elapsed<this.nextMissile)&&this.salvoLeft===0&&this.missileWarning<=0&&!this.obstacles.some(o=>o.type==='missile'))this.makePattern(this.W+130);
+      if(this.distance>300&&this.elapsed>=this.nextMissile&&this.missileWarning<=0&&this.salvoLeft===0&&!this.obstacles.some(o=>!o.hit&&o.sprite.x>this.elf.x-150)){
+        const salvo=missileSalvo(this.elapsed,Math.random());this.salvoLeft=salvo.count;this.missileWarning=salvo.warning;this.missileY=Phaser.Math.Clamp(this.elf.y,150,580);this.nextMissile=this.elapsed+salvo.interval+salvo.count*1.4;
+      }
+      if(this.missileWarning>0){
+        this.missileWarning-=dt;if(this.missileWarning>.8)this.missileY=Phaser.Math.Clamp(this.elf.y,150,580);
+        this.warning.setVisible(true).setPosition(this.W-52,this.missileY).setAlpha(Math.sin(t*18)>.1?1:.5);
+        if(this.missileWarning<=0){
+          this.warning.setVisible(false);sound.missile();const s=this.add.image(this.W+65,this.missileY,'missile-art').setDisplaySize(120,55).setDepth(7);
+          this.obstacles.push({sprite:s,type:'missile',box:{w:85,h:30,ox:-42,oy:-15},baseY:s.y,age:0,passed:false,hit:false});
+          this.salvoLeft--;if(this.salvoLeft>0){this.missileWarning=1.4;this.missileY=Phaser.Math.Clamp(this.elf.y,150,580);}
+        }
+      }
       for(let i=this.obstacles.length-1;i>=0;i--){const o=this.obstacles[i];o.age+=dt;if(o.rotating)o.sprite.angle+=dt*32;o.sprite.x-=move*dt*(o.type==='missile'?2.15:1);if(o.type==='drone')o.sprite.y=o.baseY+Math.sin(t*1.7)*32;const box={x:o.sprite.x+o.box.ox,y:o.sprite.y+o.box.oy,w:o.box.w,h:o.box.h};
         const player={x:this.elf.x+14,y:this.elf.y+3,radius:this.vehicle?30:21};const beam=o.type==='zapper'||o.type==='laser';const live=o.type!=='laser'||o.age>2.2;
         if(live&&(beam?touchesBeam(player,beamEnds(o.sprite.x,o.sprite.y,o.sprite.angle),18):intersects(player,box)))this.damage(o);

@@ -10,3 +10,7 @@ export function coursePattern(index,seed){
 }
 export function beamEnds(x,y,angle,half=90){const a=angle*Math.PI/180;return{x1:x+Math.sin(a)*half,y1:y-Math.cos(a)*half,x2:x-Math.sin(a)*half,y2:y+Math.cos(a)*half};}
 export function touchesBeam(player,beam,width=12){const dx=beam.x2-beam.x1,dy=beam.y2-beam.y1;const f=Math.max(0,Math.min(1,((player.x-beam.x1)*dx+(player.y-beam.y1)*dy)/(dx*dx+dy*dy||1)));return Math.hypot(player.x-beam.x1-f*dx,player.y-beam.y1-f*dy)<player.radius+width/2;}
+
+export function missileSalvo(seconds,random){
+ return {count:seconds<35?1:seconds<85?(random<.65?2:1):(random<.65?3:2),warning:1.4,interval:Math.max(6,14-seconds/22)};
+}
