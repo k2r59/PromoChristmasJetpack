@@ -4,10 +4,12 @@ import '@fontsource/nunito/latin-600.css';
 import '@fontsource/nunito/latin-800.css';
 import './style.css';
 import { createTextures } from './textures.js';
-import { integrateFlight, speedAt, scoreFor, patternAt, intersects, FLOOR } from './rules.js';
+import { integrateFlight, speedAt, scoreFor, intersects, FLOOR } from './rules.js';
 import { Sound } from './audio.js';
 import { GameEffects } from './effects.js';
-import {VEHICLES,vehicleAt,vehicleState,hitVehicle} from './vehicles.js';
+import {VEHICLES,vehicleAt,vehicleState,hitVehicle,vehicleFloorY,VEHICLE_ORIGIN,groundedVehiclePose} from './vehicles.js';
+import {PARTS,createColleague,animateColleague} from './colleagues.js';
+import {coursePattern,beamEnds,touchesBeam} from './course.js';
 import {BRAND,MAX_LIVES,ITEMS,initialProgress,normalizeProgress,previewMissions,applyRun,starsNeeded,takeHit} from '../shared/progression.js';
 
 const $ = id => document.getElementById(id);
@@ -22,7 +24,7 @@ const icons = {
 const icon = key => `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[key]}</svg>`;
 let best = read('noel-best',0), profile = read('noel-profile',null), installPrompt = null, lastFocus = null;
 let progress=normalizeProgress(profile?.progress);
-const sound = new Sound(read('noel-sound',false));
+const sound = new Sound(read('noel-sound',true));
 let scene, game, toastTimer, mode = 'menu';
 $('best').textContent = best.toLocaleString('fr-FR');
 $('fullscreen').innerHTML=icon('full');$('pause').innerHTML=icon('pause');
@@ -33,7 +35,7 @@ function modal(html){lastFocus=document.activeElement;$('modal').innerHTML=html;
 function closeModal(){ $('modal-backdrop').classList.add('hidden');lastFocus?.focus?.(); }
 const closeButton = '<button class="close-modal" aria-label="Fermer">×</button>';
 function bindClose(fn=closeModal){$('modal').querySelector('.close-modal')?.addEventListener('click',fn);}
-function setMode(value){mode=value;document.body.classList.toggle('playing',value!=='menu');$('menu').classList.toggle('hidden',value!=='menu');$('hud').classList.toggle('hidden',value==='menu');$('pause').classList.toggle('hidden',value==='menu'||value==='over');}
+function setMode(value){if(value==='over')sound.stopEngine();else if(value!=='playing')sound.stopAll();else sound.unlock();mode=value;document.body.classList.toggle('playing',value!=='menu');$('menu').classList.toggle('hidden',value!=='menu');$('hud').classList.toggle('hidden',value==='menu');$('pause').classList.toggle('hidden',value==='menu'||value==='over');}
 function start(){closeModal();sound.unlock();sound.start();scene.startRun();setMode('playing');$('flight-hint').classList.remove('hidden');}
 function home(){closeModal();scene.resetMenu();setMode('menu');$('flight-hint').classList.add('hidden');}
 function pause(){if(mode!=='playing')return;scene.held=false;setMode('paused');modal(`<div class="eyebrow">ON REPREND SON SOUFFLE</div><h2>Une petite pause.</h2><p>Les cadeaux peuvent attendre une minute.</p><button id="resume" class="primary"><span class="play-triangle"></span> Reprendre le vol</button><button id="return-home" class="text-button">Retour à l’accueil</button>`);$('resume').onclick=()=>{closeModal();setMode('playing');};$('return-home').onclick=home;}
@@ -49,8 +51,8 @@ class FlightScene extends Phaser.Scene {
   preload(){
     for(const key of ['city','furniture','lounge','wrapping','sled'])this.load.image(key,`/art/${key}.webp`);
     this.load.image('elf','/art/elf-arcade.webp');
-    for(const key of ['hover','rocket'])this.load.image(key,`/art/${key}.webp`);
-    this.load.spritesheet('coworkers','/art/coworkers.webp',{frameWidth:512,frameHeight:512});
+    for(const key of ['sled','hover','rocket'])this.load.image(`rider-${key}`,`/art/rider-${key}.webp`);
+    for(const key of ['man','woman'])for(const part of PARTS)this.load.image(`rig-${key}-${part}`,`/art/rig-${key}-${part}.webp`);
     this.load.image('reception','/art/reception.webp');
     this.load.image('garland','/art/garland.webp');
     this.load.image('gift-art','/art/gift-0.webp');
@@ -77,7 +79,7 @@ class FlightScene extends Phaser.Scene {
     this.elf=this.add.image(0,0,'elf').setDepth(8);
     this.runner=this.add.sprite(0,FLOOR,'elf-run').setOrigin(.5,.94).setDisplaySize(105,105).setDepth(8).setVisible(false);
     this.anims.create({key:'run',frames:this.anims.generateFrameNumbers('elf-run',{start:0,end:5}),frameRate:12,repeat:-1});
-    this.sled=this.add.image(0,0,'sled').setDisplaySize(165,88).setDepth(8).setVisible(false);
+    this.sled=this.add.image(0,0,'rider-sled').setOrigin(VEHICLE_ORIGIN.x,VEHICLE_ORIGIN.y).setDisplaySize(180,138).setDepth(8).setVisible(false);
     this.effects=new GameEffects(this);
     this.bubble=this.add.image(0,0,'shield-bubble').setDepth(9).setVisible(false);this.shieldBurst=0;this.colleagues=[];this.vehicleIndex=0;
     this.aura=this.add.graphics().setDepth(9);this.warning=this.add.text(0,0,'!',{fontFamily:'Lilita One',fontSize:'38px',color:'#fff4b7',backgroundColor:'#cc3b46',padding:{x:14,y:4}}).setOrigin(.5).setDepth(10).setVisible(false);
@@ -98,7 +100,7 @@ class FlightScene extends Phaser.Scene {
   resetMenu(){this.clearRun();this.held=false;this.elf.setVisible(true).setDisplaySize(350,350*this.elf.height/this.elf.width).setAlpha(1).setAngle(-7);this.runner.setVisible(false);this.sled.setVisible(false);this.bubble.setVisible(false);this.aura.clear();this.warning.setVisible(false);this.heroGifts.forEach(g=>g.setVisible(true));this.glow.setAlpha(.23).setDisplaySize(430,430);}
   clearRun(){this.effects?.clear();this.colleagues?.forEach(c=>c.sprite.destroy());this.colleagues=[];this.shieldBurst=0;for(const list of [this.obstacles,this.gifts,this.pickups])list.forEach(o=>o.sprite.destroy());this.particles.forEach(p=>p.s.destroy());this.obstacles=[];this.gifts=[];this.pickups=[];this.particles=[];}
   startRun(){
-    this.clearRun();this.elapsed=0;this.distance=0;this.collected=0;this.chain=0;this.bonuses=0;this.extraScore=0;this.score=0;this.worldDistance=0;this.patternIndex=0;this.vy=0;this.held=false;this.lives=MAX_LIVES;this.invulnerable=1;this.shield=progress.owned.includes('shield-start')?8:0;this.magnet=0;this.vehicle=false;this.ride=null;this.nextColleague=3;this.letterSlots=Array(8).fill(false);this.letterCursor=0;this.letterReset=0;this.nextMissile=14;this.missileWarning=0;this.grounded=false;this.runId=crypto.randomUUID();this.finished=false;this.missionAnnounced=new Set();this.runProgress=structuredClone(progress);
+    this.clearRun();this.elapsed=0;this.distance=0;this.collected=0;this.chain=0;this.bonuses=0;this.extraScore=0;this.score=0;this.worldDistance=0;this.patternIndex=0;this.courseSeed=crypto.getRandomValues(new Uint32Array(1))[0];this.vy=0;this.held=false;this.lives=MAX_LIVES;this.invulnerable=1;this.shield=progress.owned.includes('shield-start')?8:0;this.magnet=0;this.vehicle=false;this.ride=null;this.nextColleague=3;this.letterSlots=Array(8).fill(false);this.letterCursor=0;this.letterReset=0;this.nextMissile=14;this.missileWarning=0;this.grounded=false;this.runId=crypto.randomUUID();this.finished=false;this.missionAnnounced=new Set();this.runProgress=structuredClone(progress);
     this.stats={distance:0,gifts:0,games:1,letters:0,obstacles:0,ground:0,air:0,hearts:0,magnetGifts:0,vehicleDistance:0,sets:0,nearMisses:0,shieldHits:0};
     this.elf.setVisible(true).setPosition(Math.min(310,this.W*.24),340).setDisplaySize(112,112*this.elf.height/this.elf.width).setAngle(0).setAlpha(1);this.runner.setVisible(false);this.sled.setVisible(false);this.heroGifts.forEach(g=>g.setVisible(false));this.glow.setDisplaySize(150,150);this.makePattern(this.W+120);this.updateHud();
   }
@@ -116,27 +118,27 @@ class FlightScene extends Phaser.Scene {
 
   pickup(type,x,y,index){const texture=type==='letter'?`letter-${BRAND[index]}`:type;const sprite=this.add.image(x,y,texture).setScale(type==='letter'?.67:.65).setDepth(7);this.pickups.push({type,sprite,baseY:y,index});}
   makePattern(x){
-    const index=this.patternIndex++,pattern=patternAt(index),type=pattern.type;let sprite,box;
+    const index=this.patternIndex++,pattern=coursePattern(index,this.courseSeed),type=pattern.type;let sprite,box;
     if(['printer','trolley','wrapper'].includes(type)){const sizes={printer:[170,205],trolley:[145,215],wrapper:[195,165]};const [w,h]=sizes[type];sprite=this.add.image(x,FLOOR,`${type}-art`).setOrigin(.5,1).setDisplaySize(w,h);box={w:w*.72,h:h*.86,ox:-w*.36,oy:-h*.86};}
     else if(type==='cable'){sprite=this.add.image(x,0,'cable-art').setOrigin(.5,0).setDisplaySize(120,260);box={w:50,h:306,ox:-23,oy:0};}
-    else if(type==='zapper'){sprite=this.add.image(x,345,'zapper-art').setDisplaySize(85,220);box={w:30,h:178,ox:-15,oy:-89};}
-    else{sprite=this.add.image(x,430,'drone-art').setDisplaySize(130,90);box={w:78,h:42,ox:-39,oy:-21};}
-    sprite.setDepth(7);this.obstacles.push({sprite,type,box,baseY:sprite.y,passed:false,hit:false});
+    else if(type==='zapper'||type==='laser'){sprite=this.add.image(x,pattern.centerY,'zapper-art').setDisplaySize(85,220).setAngle(pattern.angle);box={w:40,h:180,ox:-20,oy:-90};}
+    else if(type!=='rest'){sprite=this.add.image(x,430,'drone-art').setDisplaySize(130,90);box={w:78,h:42,ox:-39,oy:-21};}
+    if(sprite){sprite.setDepth(7);this.obstacles.push({sprite,type,box,baseY:sprite.y,passed:false,hit:false,rotating:pattern.rotating,age:0});}
     const shape=index%4;const giftCount=shape===3?8:6;
     for(let i=0;i<giftCount;i++){let y=pattern.safeY;if(shape===0)y+=Math.sin(i/5*Math.PI)*-60;else if(shape===1)y+=(i%3-1)*24;else if(shape===2)y+=(i-2)*13;
       const s=this.makeGift(x-270+i*65,y,(index+i)%4,53).setDepth(6).setAngle(-6+i%3*6);this.gifts.push({sprite:s,baseY:y,phase:i*.7});}
     if(index%3===1&&!this.letterSlots.every(Boolean)){const slot=this.letterCursor++%8;this.pickup('letter',x-110,pattern.safeY-45,slot);}
     if(index%6===4)this.pickup('heart',x-80,pattern.safeY+30);
     if(index%10===7)this.pickup('vehicle-token',x-100,pattern.safeY-45);
-    else if(index%8===5)this.pickup(['magnet','shield'][Math.floor(index/8)%2],x-100,pattern.safeY-45);
+    else if(index%8===5&&!this.vehicle)this.pickup(['magnet','shield'][Math.floor(index/8)%2],x-100,pattern.safeY-45);
     this.spawnDistance=pattern.gap;
   }
   damage(obstacle){
     if(obstacle.hit)return;const result=takeHit({lives:this.lives,invulnerable:this.invulnerable,shield:this.shield,vehicle:this.vehicle});if(!result.damage)return;
     if(this.vehicle){this.ride=hitVehicle(this.ride);result.vehicle=Boolean(this.ride);}if(this.shield>0&&result.shield===0)this.shieldBurst=.4;
     this.lives=result.lives;this.invulnerable=result.invulnerable;this.shield=result.shield;this.vehicle=result.vehicle;obstacle.hit=true;obstacle.sprite.setAlpha(.35);this.chain=0;
-    if(result.absorbed){this.stats.shieldHits++;toast('Choc absorbé !');}else{sound.fail();toast(this.lives?`${this.lives} vie${this.lives>1?'s':''} restante${this.lives>1?'s':''}`:'Fin de la livraison');}
-    const electric=['cable','zapper'].includes(obstacle.type);this.effects.impact(this.elf.x+14,this.elf.y,electric);sound.impact(electric);if(obstacle.type==='missile'||obstacle.type==='drone')obstacle.sprite.setVisible(false);if(!this.reduced)this.cameras.main.shake(140,.003);if(this.lives===0){this.score=scoreFor(this.distance,this.collected,this.bonuses)+this.extraScore;finish();}
+    if(result.absorbed){sound.shield();this.stats.shieldHits++;toast('Choc absorbé !');}else{sound.fail();toast(this.lives?`${this.lives} vie${this.lives>1?'s':''} restante${this.lives>1?'s':''}`:'Fin de la livraison');}
+    const electric=['cable','zapper','laser'].includes(obstacle.type);this.effects.impact(this.elf.x+14,this.elf.y,electric);sound.impact(electric);if(obstacle.type==='missile'||obstacle.type==='drone')obstacle.sprite.setVisible(false);if(!this.reduced)this.cameras.main.shake(140,.003);if(this.lives===0){this.score=scoreFor(this.distance,this.collected,this.bonuses)+this.extraScore;finish();}
   }
   collectPickup(p){
     if(p.type==='heart'){this.stats.hearts++;if(this.lives<3){this.lives++;toast('+1 vie !');}else{this.extraScore+=100;toast('Vies au maximum · +100 pts');}sound.bonus();}
@@ -148,9 +150,9 @@ class FlightScene extends Phaser.Scene {
   }
   activateVehicle(){const type=vehicleAt(this.vehicleIndex++);this.ride=vehicleState(type);this.vehicle=true;this.invulnerable=1.5;const spec=VEHICLES[type];this.sled.setTexture(spec.texture).setDisplaySize(spec.width,spec.height);sound.bonus();toast(`${spec.name} · ${type==='sled'?'2 chocs absorbés':type==='hover'?'aimant pendant 20 s':'cadeaux ×2 pendant 20 s'}`);}
   updateColleagues(dt,t,move){
-    if(this.elapsed>=this.nextColleague){this.nextColleague=this.elapsed+5+Math.random()*4;const row=Math.random()<.5?0:3;const sprite=this.add.sprite(this.W+80,FLOOR,'coworkers',row).setOrigin(.5,.94).setDisplaySize(72,72).setDepth(6);this.colleagues.push({sprite,row,greeted:false,phase:Math.random()*5});}
-    for(let i=this.colleagues.length-1;i>=0;i--){const c=this.colleagues[i],s=c.sprite;s.x-=(move+20)*dt;const dx=s.x-this.elf.x;const danger=this.obstacles.some(o=>!o.hit&&Math.abs(o.sprite.x-s.x)<140&&['missile','printer','trolley','wrapper'].includes(o.type));
-      const greeting=Math.abs(dx)<140&&!danger;s.setFrame(c.row+(greeting?2:Math.floor(t*7+c.phase)%2));s.setDisplaySize(72,72);s.y=FLOOR-(greeting||danger||this.reduced?0:Math.abs(Math.sin(t*7+c.phase))*2);
+    if(this.elapsed>=this.nextColleague){this.nextColleague=this.elapsed+5+Math.random()*4;const key=Math.random()<.5?'man':'woman';this.colleagues.push(createColleague(this,key,this.W+80,FLOOR));}
+    for(let i=this.colleagues.length-1;i>=0;i--){const c=this.colleagues[i],s=c.sprite;const dx=s.x-this.elf.x;const danger=this.obstacles.some(o=>!o.hit&&Math.abs(o.sprite.x-s.x)<140&&['missile','printer','trolley','wrapper'].includes(o.type));
+      const greeting=Math.abs(dx)<140&&!danger;s.x-=(move+animateColleague(c,dt,danger,greeting))*dt;s.y=FLOOR;
       if(!c.greeted&&Math.abs(dx)<32&&this.grounded&&!danger){c.greeted=true;this.extraScore+=100;this.stats.highFives=(this.stats.highFives||0)+1;this.burst(s.x,FLOOR-60,5,0xffe6a2);sound.collect(1);toast('High-five ! +100 pts');}
       if(s.x<-90){s.destroy();this.colleagues.splice(i,1);}
     }
@@ -172,20 +174,21 @@ class FlightScene extends Phaser.Scene {
       if(this.vehicle&&this.ride.type!=='sled'){this.ride.remaining=Math.max(0,this.ride.remaining-dt);if(this.ride.remaining===0){this.vehicle=false;this.ride=null;this.invulnerable=Math.max(this.invulnerable,.7);toast('Retour au jetpack !');}}
       this.invulnerable=Math.max(0,this.invulnerable-dt);this.shield=Math.max(0,this.shield-dt);this.magnet=Math.max(0,this.magnet-dt);if(this.vehicle&&VEHICLES[this.ride.type].magnet)this.magnet=Math.max(this.magnet,.2);
       if(this.letterReset>0){this.letterReset-=dt;if(this.letterReset<=0){this.letterSlots.fill(false);this.letterCursor=0;}}
-      const flight=integrateFlight(this.elf.y,this.vy,this.held,dt);this.elf.y=flight.y;this.vy=flight.velocity;const onGround=this.elf.y>=FLOOR-28-.5&&!this.held&&!this.vehicle;
+      const flight=integrateFlight(this.elf.y,this.vy,this.held,dt);this.elf.y=this.vehicle?Math.min(flight.y,vehicleFloorY(this.ride.type,FLOOR)):flight.y;this.vy=this.elf.y<flight.y?0:flight.velocity;const onGround=this.elf.y>=FLOOR-28-.5&&!this.held&&!this.vehicle;
       if(onGround&&!this.grounded)this.burst(this.elf.x,FLOOR,6,0xb4c7d6);this.grounded=onGround;
       this.stats[onGround?'ground':'air']+=move*dt/12;if(this.vehicle)this.stats.vehicleDistance+=move*dt/12;
-      this.elf.setVisible(!onGround);this.runner.setVisible(onGround).setPosition(this.elf.x+10,FLOOR).setAlpha(this.invulnerable>0&&!this.reduced?.5+Math.sin(t*28)*.3:1);
+      this.elf.setVisible(!onGround&&!this.vehicle);this.runner.setVisible(onGround).setPosition(this.elf.x+10,FLOOR).setAlpha(this.invulnerable>0&&!this.reduced?.5+Math.sin(t*28)*.3:1);
       if(onGround){this.runner.play('run',true);this.runner.anims.resume();this.runner.anims.timeScale=move/250;}else this.runner.anims.pause();
       this.elf.setDisplaySize(this.vehicle?88:112,(this.vehicle?88:112)*this.elf.height/this.elf.width).setAlpha(this.invulnerable>0&&!this.reduced?.55+Math.sin(t*28)*.3:1);
-      this.elf.angle=Phaser.Math.Linear(this.elf.angle,this.held?-13:Math.min(20,this.vy*.045),.12);this.sled.setVisible(this.vehicle).setPosition(this.elf.x,this.elf.y+28).setAngle(this.elf.angle*.4);
+      this.elf.angle=Phaser.Math.Linear(this.elf.angle,this.held?-13:Math.min(20,this.vy*.045),.12);if(this.vehicle){const pose=groundedVehiclePose(this.ride.type,this.elf.y,FLOOR,this.elf.angle*.25);this.elf.y=pose.y;this.sled.setPosition(this.elf.x,pose.y).setAngle(pose.angle);}this.sled.setVisible(this.vehicle);
       this.glow.setPosition(this.elf.x-30,this.elf.y+5).setDisplaySize(150,150).setAlpha(this.held?.2:.03);if(this.held||this.vehicle)this.exhaust();
       this.aura.clear();this.shieldBurst=Math.max(0,this.shieldBurst-dt);const bubbleOn=this.shield>0||this.shieldBurst>0;const swell=this.shieldBurst>0?1+(.4-this.shieldBurst)*.7:1;this.bubble.setVisible(bubbleOn).setPosition(this.elf.x+8,this.elf.y).setDisplaySize((144+Math.sin(t*2)*2)*swell,(150-Math.sin(t*2)*2)*swell).setAlpha(this.shieldBurst>0?this.shieldBurst/.4:this.shield<2?.5+this.shield*.22:.92);if(this.magnet>0){this.aura.lineStyle(2,0xffd964,.25);this.aura.strokeCircle(this.elf.x+8,this.elf.y,100+(Math.sin(t*4)+1)*12);}
       if(this.elapsed>7)$('flight-hint').classList.add('hidden');this.spawnDistance-=move*dt;if(this.spawnDistance<=0)this.makePattern(this.W+130);
-      if(this.elapsed>=this.nextMissile&&this.missileWarning<=0){this.missileWarning=1.7;this.missileY=Phaser.Math.Clamp(this.elf.y,150,560);this.nextMissile=this.elapsed+14+Math.random()*5;}
-      if(this.missileWarning>0){this.missileWarning-=dt;if(this.missileWarning>1)this.missileY=Phaser.Math.Clamp(this.elf.y,150,560);this.warning.setVisible(true).setPosition(this.W-52,this.missileY).setAlpha(Math.sin(t*18)>.1?1:.5);if(this.missileWarning<=0){this.warning.setVisible(false);const s=this.add.image(this.W+65,this.missileY,'missile-art').setDisplaySize(120,55).setDepth(7);this.obstacles.push({sprite:s,type:'missile',box:{w:85,h:30,ox:-42,oy:-15},baseY:s.y,passed:false,hit:false});}}
-      for(let i=this.obstacles.length-1;i>=0;i--){const o=this.obstacles[i];o.sprite.x-=move*dt*(o.type==='missile'?2.15:1);if(o.type==='drone')o.sprite.y=o.baseY+Math.sin(t*1.7)*32;const box={x:o.sprite.x+o.box.ox,y:o.sprite.y+o.box.oy,w:o.box.w,h:o.box.h};
-        if(intersects({x:this.elf.x+14,y:this.elf.y+3,radius:this.vehicle?30:21},box))this.damage(o);
+      if(this.distance>300&&this.elapsed>=this.nextMissile&&this.missileWarning<=0&&!this.obstacles.some(o=>!o.hit&&Math.abs(o.sprite.x-this.elf.x)<330)){this.missileWarning=1.7;this.missileY=Phaser.Math.Clamp(this.elf.y,150,560);this.nextMissile=this.elapsed+Math.max(7,16-this.elapsed/45)+Math.random()*3;}
+      if(this.missileWarning>0){this.missileWarning-=dt;if(this.missileWarning>1)this.missileY=Phaser.Math.Clamp(this.elf.y,150,560);this.warning.setVisible(true).setPosition(this.W-52,this.missileY).setAlpha(Math.sin(t*18)>.1?1:.5);if(this.missileWarning<=0){this.warning.setVisible(false);sound.missile();const s=this.add.image(this.W+65,this.missileY,'missile-art').setDisplaySize(120,55).setDepth(7);this.obstacles.push({sprite:s,type:'missile',box:{w:85,h:30,ox:-42,oy:-15},baseY:s.y,passed:false,hit:false});}}
+      for(let i=this.obstacles.length-1;i>=0;i--){const o=this.obstacles[i];o.age+=dt;if(o.rotating)o.sprite.angle+=dt*32;o.sprite.x-=move*dt*(o.type==='missile'?2.15:1);if(o.type==='drone')o.sprite.y=o.baseY+Math.sin(t*1.7)*32;const box={x:o.sprite.x+o.box.ox,y:o.sprite.y+o.box.oy,w:o.box.w,h:o.box.h};
+        const player={x:this.elf.x+14,y:this.elf.y+3,radius:this.vehicle?30:21};const beam=o.type==='zapper'||o.type==='laser';const live=o.type!=='laser'||o.age>2.2;
+        if(live&&(beam?touchesBeam(player,beamEnds(o.sprite.x,o.sprite.y,o.sprite.angle),18):intersects(player,box)))this.damage(o);
         if(!o.passed&&o.sprite.x+o.box.w/2<this.elf.x-24){o.passed=true;if(!o.hit){this.stats.obstacles++;const near=intersects({x:this.elf.x+14,y:this.elf.y+3,radius:65},box);if(near)this.stats.nearMisses++;}}
         if(o.sprite.x<-200){o.sprite.destroy();this.obstacles.splice(i,1);}if(mode!=='playing')break;
       }
@@ -197,6 +200,7 @@ class FlightScene extends Phaser.Scene {
       this.updateColleagues(dt,t,move);
       this.score=scoreFor(this.distance,this.collected,this.bonuses)+this.extraScore;if(!this.lastHud||time-this.lastHud>100){this.updateHud();this.lastHud=time;}sound.ambience(this.elapsed);
     }else if(mode!=='menu')this.runner.anims.pause();
+    sound.update({active:mode==='playing',thrust:this.held,vehicle:this.vehicle,grounded:this.grounded,warning:this.missileWarning>0,seconds:this.elapsed});
     this.effects.update(dt,mode==='playing'?this.obstacles:[],mode==='playing'||mode==='over');
     if(mode!=='paused')for(let i=this.particles.length-1;i>=0;i--){const p=this.particles[i];p.life-=dt;p.s.x+=p.vx*dt;p.s.y+=p.vy*dt;p.s.alpha=Math.max(0,p.life/p.max);if(p.life<=0){p.s.destroy();this.particles.splice(i,1);}}
   }
@@ -207,7 +211,7 @@ window.addEventListener('resize',()=>{if(!scene)return;const w=width();game.scal
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 document.addEventListener('keydown',e=>{if(e.code==='Tab'&&!$('modal-backdrop').classList.contains('hidden')){const items=[...$('modal').querySelectorAll('button:not(:disabled),input')];const first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}if(e.target instanceof HTMLInputElement)return;if(e.code==='Space'&&mode==='playing'){e.preventDefault();scene.held=true;}else if((e.code==='Escape'||e.code==='KeyP')&&mode==='playing'){e.preventDefault();pause();}else if(e.code==='Escape'&&mode==='paused'){closeModal();setMode('playing');}else if(e.code==='Escape'&&mode==='menu')closeModal();});document.addEventListener('keyup',e=>{if(e.code==='Space'&&scene)scene.held=false;});
 $('play').onclick=requestPlay;$('how').onclick=how;$('pause').onclick=pause;$('brand').onclick=()=>{if(mode==='playing')pause();else if(mode==='menu')return;else home();};
-$('sound').onclick=()=>{sound.unlock();sound.enabled=!sound.enabled;save('noel-sound',sound.enabled);updateSound();if(sound.enabled)sound.tone(660,.2);};
+$('sound').onclick=()=>{sound.unlock();sound.setEnabled(!sound.enabled);save('noel-sound',sound.enabled);updateSound();if(sound.enabled)sound.tone(660,.2);};
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('Installez le jeu pour profiter du plein écran.');}catch{toast('Le plein écran n’est pas disponible dans ce navigateur.');}};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;});
 window.addEventListener('appinstalled',()=>{$('install-nudge').classList.add('hidden');$('install').classList.add('hidden');toast('Noël Shift est installé. À vous de jouer !');});

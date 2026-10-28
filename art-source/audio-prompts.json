@@ -1,0 +1,46 @@
+{
+  "provider": "ElevenLabs",
+  "model": "eleven_text_to_sound_v2",
+  "effects": {
+    "jetpack": [
+      4,
+      true,
+      "Seamless loop of a small cartoon jetpack engine, warm smooth rushing air with a soft turbine whirr, steady sustained thrust, close dry game sound, no music no speech no explosions"
+    ],
+    "gift": [
+      0.65,
+      false,
+      "One bright delicate magical gift pickup chime, tiny glass bell sparkle, immediate attack, cheerful premium Christmas arcade game, short clean decay, no music no voice"
+    ],
+    "electric": [
+      1,
+      false,
+      "One sharp electrical arc snap followed by crackling fizz and short buzzing decay, powerful sci-fi electric trap, dry close sound, no voice no music"
+    ],
+    "missile": [
+      1.3,
+      false,
+      "Single small rocket missile passing fast, compressed rising air whoosh with fiery turbine hiss, immediate launch then short fading tail, arcade game, no explosion no voice no music"
+    ],
+    "explosion": [
+      1.5,
+      false,
+      "One punchy stylized game explosion, immediate deep thump and crisp crack then short debris rattle, cinematic but compact, no distortion no voice no music"
+    ],
+    "bonus": [
+      1.4,
+      false,
+      "Short joyful magical Christmas reward flourish, ascending celesta notes and soft sleigh bell sparkle, immediate attack, polished arcade pickup sound, no voice no long music"
+    ],
+    "shield": [
+      1,
+      false,
+      "Magical energy shield absorbs a hit, resonant glassy crystalline impact with airy shimmer, short clean science fantasy game sound, no voice no music"
+    ],
+    "step": [
+      0.5,
+      false,
+      "One soft leather shoe footstep on a solid indoor wooden floor, dry muted light tap, isolated single step, no echo no speech no music"
+    ]
+  }
+}

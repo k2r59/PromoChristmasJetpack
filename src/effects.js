@@ -1,3 +1,4 @@
+import {beamEnds} from './course.js';
 // Effects share the scene clock: pausing also freezes arcs, smoke and impacts.
 export class GameEffects {
   constructor(scene) {
@@ -36,7 +37,8 @@ export class GameEffects {
     this.time+=dt;this.graphics.clear();
     for(const o of obstacles){if(o.hit||o.sprite.x<-100||o.sprite.x>this.scene.W+120)continue;const x=o.sprite.x,y=o.sprite.y;
       if(['printer','trolley','wrapper'].includes(o.type)){const pulse=this.scene.reduced?.8:.7+Math.sin(this.time*4)*.2;this.graphics.fillStyle(0xffc35a,pulse);this.graphics.fillRect(x-62,y-8,124,3);}
-      if(o.type==='zapper')this.arc(x,y-30,x,y+30,1);
+      if(o.type==='zapper'){const b=beamEnds(x,y,o.sprite.angle,30);this.arc(b.x1,b.y1,b.x2,b.y2,1);}
+      if(o.type==='laser'){const b=beamEnds(x,y,0,30),live=o.age>2.2;for(const [w,a]of [[14,.12],[5,.5],[1.5,1]]){this.graphics.lineStyle(live?w:1,live?0xff5757:0xff9b70,live?a:.3);this.graphics.lineBetween(b.x1,b.y1,b.x2,b.y2);}this.graphics.fillStyle(0xff785c,live?.9:.4);this.graphics.fillCircle(x,y-34,5);}
       if(o.type==='cable')this.arc(x-16,240,x+17,306,5);
       if(o.type==='drone'){
         const span=17+Math.sin(this.time*65)*9;this.graphics.lineStyle(3,0xd3e9ef,.6);for(const dx of[-43,43])this.graphics.lineBetween(x+dx-span,y-24,x+dx+span,y-24);

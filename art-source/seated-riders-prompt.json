@@ -1,0 +1,9 @@
+{
+  "generator": "Built-in image_gen",
+  "prompt": "Create a new transparent game sprite atlas using these reference images for elf character identity and red sleigh design. Output 1536x1024, exactly THREE equal columns of 512px, each contains one complete vehicle with the SAME elf properly SEATED inside/on it, facing RIGHT. Left column: red golden sleigh from reference, elf SITTING naturally on cream seat, torso upright, bent knees and legs concealed behind front side panel, hands holding steering handles. Center column: green gold magnetic hoverboard adapted to have a little saddle and handlebar; elf SEATED on saddle with knees bent, boots on footrests, hands gripping handlebar. Right column: red gold rocket with cockpit, elf SEATED down IN cockpit with lower body occluded by fuselage, hands on controls, face looks forward. Same elf face, green hat, red scarf, green coat from reference. This is NOT flying elf pasted above vehicle: weight clearly supported by seat, natural joint bends, occlusion by vehicle sides. Each vehicle+driver a cohesive single illustration. Generous transparent gaps, all three isolated full sprites, consistent proportions and side elevation, rich painted arcade style, bright readable colors. No exhaust flames, no background, no floor, no text. Put all three near center vertically in each column.",
+  "reference": [
+    "public/art/elf-arcade.webp",
+    "public/art/sled.webp"
+  ],
+  "normalization": "scripts/prepare-riders.mjs; seated elf is drawn inside each vehicle, not a flying sprite overlaid."
+}
