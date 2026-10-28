@@ -1,0 +1,6 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {GameEffects} from '../src/effects.js';
+function scene(){const objects=[];const methods=['setDepth','setDisplaySize','setTint','setFrame','setAlpha'];return {objects,W:1500,reduced:false,add:{graphics(){const g={};for(const k of ['setDepth','clear','lineStyle','beginPath','lineTo','moveTo','strokePath','fillStyle','fillCircle','lineBetween','fillTriangle','strokeCircle'])g[k]=()=>g;return g;},image(x,y,key){const s={x,y,key,rotation:0,destroy(){this.destroyed=true;}};for(const k of methods)s[k]=(...args)=>{s[k+'Args']=args;return s;};objects.push(s);return s;}}};}
+test('explosions freeze on pause, advance frames, then release every sprite',()=>{const s=scene(),fx=new GameEffects(s);fx.impact(100,200);fx.update(.2,[],false);assert.equal(fx.blasts[0].age,0);fx.update(.3,[],true);assert.equal(fx.blasts[0].sprite.setFrameArgs[0],3);for(let i=0;i<20;i++)fx.update(.1,[],true);assert.equal(fx.blasts.length,0);assert.equal(fx.bits.length,0);assert.ok(s.objects.every(o=>o.destroyed));});
+test('electric hits use sparks, and restarting clears transient effects',()=>{const fx=new GameEffects(scene());fx.impact(10,20,true);assert.equal(fx.blasts.length,0);assert.ok(fx.bits.length>0);fx.clear();assert.equal(fx.bits.length,0);assert.equal(fx.ring,null);});

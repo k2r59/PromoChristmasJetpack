@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#091d25" />
+  <meta name="description" content="Une nuit au-dessus de Paris. Un lutin, un jetpack et une dernière livraison. Un jeu d’arcade de Noël à jouer du bout des doigts." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <title>Noël Shift — La dernière livraison</title>
+</head>
+<body>
+  <div id="game" aria-label="Jeu Noël Shift. Maintenez le doigt ou la barre espace pour monter, relâchez pour descendre."></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div id="loading" class="loading"><span class="loading-star">✦</span><span>On allume les guirlandes…</span><div class="loading-track"><i id="load-progress"></i></div></div>
+  <header class="topbar">
+    <button id="brand" class="brand" aria-label="Retour à l’accueil"><span class="brand-symbol" aria-hidden="true">✦</span><span>NOËL SHIFT<small>PAR PROMODEV</small></span></button>
+    <div class="header-right"><button id="account" class="account-button">S’inscrire</button><div id="best-label" class="best-label"><span>MON RECORD</span><strong id="best">0</strong><small>PTS</small></div><span class="header-divider"></span><button id="sound" class="icon-button" aria-label="Activer le son" aria-pressed="false"></button><button id="fullscreen" class="icon-button" aria-label="Passer en plein écran"></button><button id="pause" class="icon-button hidden" aria-label="Mettre en pause"></button></div>
+  </header>
+  <main id="menu" class="menu">
+    <div class="eyebrow"><span></span> MISSION : SAUVER NOËL !</div>
+    <h1><span class="noel">NOËL<span class="title-spark">✧</span></span><span class="shift">SHIFT</span></h1>
+    <div class="title-rule"><i></i><span>LA COURSE AUX CADEAUX</span><i></i></div>
+    <p class="intro">Un lutin. Un jetpack. Un bureau plein de surprises.<br>À vous de faire décoller Noël !</p>
+    <button id="play" class="primary"><span class="play-triangle" aria-hidden="true"></span><span>JOUER<span class="button-sub">ET FAIRE LE PLEIN DE CADEAUX</span></span><span class="button-arrow" aria-hidden="true">↗</span></button>
+    <button id="how" class="text-button">Comment jouer <span aria-hidden="true">↗</span></button>
+    <div class="input-hint"><span class="keycap">ESPACE</span><span>ou maintenez le doigt pour voler</span></div>
+  </main>
+  <div id="hero-caption" class="hero-caption"><span class="caption-line"></span><span>Attrapez les cadeaux.<br><strong>Évitez la photocopieuse !</strong></span></div>
+  <footer id="footer"><span><i class="status-dot"></i> JOYEUSES FÊTES AVEC <b class="promodev">promodev</b></span><button id="install" class="text-button">Installer le jeu <span aria-hidden="true">↓</span></button><span class="footer-right">100 % ESPRIT DE NOËL.</span></footer>
+  <section id="hud" class="hud hidden" aria-label="Score de la partie"><div class="score-block"><span>LIVRAISON EN COURS</span><strong id="score">00000</strong><div><span id="distance">0 m</span><i></i><span id="gifts">0 cadeau</span></div></div><div class="run-collection"><div id="lives" aria-label="3 vies sur 3"></div><div id="letters" aria-label="Lettres PROMODEV"></div><div id="powerups"></div></div><div id="combo" class="combo"><span>SÉRIE DE CADEAUX</span><div id="combo-dots"></div></div></section>
+  <div id="flight-hint" class="flight-hint hidden"><span class="touch-ring"></span> Maintenez pour monter <span class="hint-divider">/</span> Relâchez pour descendre</div>
+  <aside id="install-nudge" class="install-nudge hidden" aria-label="Installer Noël Shift"><button id="dismiss-install" aria-label="Masquer la proposition d’installation">×</button><img src="/icon-192.png" alt="" width="42" height="42"/><div><strong>Emportez la magie.</strong><span>Plein écran. Même hors connexion.</span><button id="install-now">Installer Noël Shift <span aria-hidden="true">↗</span></button></div></aside>
+  <div id="toast" class="toast" role="status"></div>
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1"></section>
+  </div>
+  <div id="rotate" class="rotate"><svg width="62" height="62" viewBox="0 0 64 64" fill="none" aria-hidden="true"><rect x="21" y="10" width="24" height="42" rx="5" stroke="currentColor" stroke-width="2" transform="rotate(30 32 32)"/><path d="M8 26C8 16 14 8 24 5M8 26l-4-5m4 5 5-4M56 38c0 10-6 18-16 21m16-21 4 5m-4-5-5 4" stroke="currentColor" stroke-width="2"/></svg><h2>Tournez votre écran.</h2><p>Paris se découvre en paysage.<br>Votre livraison vous attend.</p></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

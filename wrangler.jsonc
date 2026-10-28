@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "promo-christmas-jetpack",
+  "main": "server/worker.js",
+  "compatibility_date": "2026-10-28",
+  "account_id": "d5d57d15751e093b840fcd28077f1f1f",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "jetpack.promo.dev", "custom_domain": true }],
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "promo-christmas-jetpack",
+    "database_id": "7745b58a-6ff1-4fae-a344-3f61ae344941",
+    "migrations_dir": "drizzle"
+  }],
+  "observability": { "enabled": true }
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "file": "gift-0.webp",
+    "width": 180,
+    "height": 180,
+    "alpha": true,
+    "sha256": "2aa84fb9b14ed11c1a52960b6a77c22832d7ee1bba0d764677c1f62119a042ea"
+  },
+  {
+    "file": "gift-1.webp",
+    "width": 180,
+    "height": 180,
+    "alpha": true,
+    "sha256": "2b8eb80eef88cd3334fbe286f316d37047d8de32e9425e750266553e31ba8388"
+  },
+  {
+    "file": "gift-2.webp",
+    "width": 180,
+    "height": 180,
+    "alpha": true,
+    "sha256": "e63bdf05e3b57b1916d5ec5aeb67d0c674d67a29f1d3dba8f0ebf0ab23c6985d"
+  },
+  {
+    "file": "gift-3.webp",
+    "width": 180,
+    "height": 180,
+    "alpha": true,
+    "sha256": "32e23da693fe5aafcd1c32d26cabed4744ffdf6bb59d7e2bc5b8117051dda9a7"
+  }
+]

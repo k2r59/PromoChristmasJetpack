@@ -1,0 +1,31 @@
+{
+  "engine": "Phaser 3.90",
+  "direction": "Arcade Noël illustré, couleurs riches, gros boutons, lutin expressif",
+  "generation": "Built-in image_gen; no external paid asset provider",
+  "gameAssetSkill": {
+    "cliAvailable": false,
+    "scope": "2D image generation and asset specification; no canonical game-dev package claimed"
+  },
+  "assets": [
+    {
+      "file": "public/art/city.webp",
+      "use": "Distant skyline, 8% world speed",
+      "prompt": "Use case: stylized-concept. Production 2D SIDE-SCROLLING GAME BACKGROUND, seamless horizontally repeatable panorama, 1536x1024. Snowy Paris skyline at night, exterior view from fifth floor office, but NO interior, NO window frames, NO furniture, NO garlands. Top 65% rich royal navy blue night sky with small stars and soft fluffy blue clouds, bottom 35% charming snow-covered Paris buildings with glowing amber windows, chimneys, a dome very distant. Match premium illustrated Christmas arcade game, clean dark navy outlines, rounded forms, soft painterly gradients, rich cobalt and warm gold. Similar building heights at left and right edge, no dominant tower at edges. No foreground, no text, no characters. Fill the entire frame, no transparency."
+    },
+    {
+      "file": "public/art/furniture.webp",
+      "use": "Transparent furniture strip, 55% world speed",
+      "prompt": "Use case: stylized-concept. Game asset: a wide continuous horizontal row of modern office FURNITURE for a Christmas 2D side-scroller, isolated on TRUE TRANSPARENT alpha background. Landscape 1536x1024. Straight-on side elevation. Everything sits on the SAME flat horizontal baseline. Four adjoining modern beige wooden desks with thin charcoal legs, three dark office swivel chairs, black monitors, little warm desk lamps, notebooks, small leafy potted plants, red mugs, a small lit Christmas tree between desks. Some wrapped gifts below desks. Rich charming polished cartoon arcade game art, clean navy outlines, softly painterly shading, warm amber desk lighting. Entire grouping centered vertically with clear space above and below. No floor, no room, no walls, NO windows, NO skyline, NO backdrop, no words, no figures, no enclosing frame. ALL spaces between legs and chairs are transparent. Foreground object sprites only. Must not have any dark background or colored glow outside furniture silhouette."
+    },
+    {
+      "file": "public/art/elf-arcade.webp",
+      "use": "Player sprite",
+      "prompt": "Use case: stylized-concept. Asset type: transparent 2D sprite for premium cartoon Christmas arcade game. ONE isolated cute joyful Christmas elf hero FLYING TO THE RIGHT, three-quarter side view, head toward right. Squat adorable cartoon proportions: LARGE expressive head, huge friendly hazel eyes, big grin, little pointy ears, tousled brown hair, green floppy pointed cap with white pompom. Short emerald green coat with bright gold buttons, red collar, chunky brown gloves, red-and-green striped socks, little brown curled boots. Compact golden brass rocket jetpack on back, red scarf streaming left. Dynamic flying pose, knees bent back, one fist in front. Friendly mischievous personality, confident and happy. Crisp navy outlines, soft painterly cartoon shading, warm cel highlights, rich jewel tones, polished mobile game art like illustrated storybook arcade, NOT realistic, NOT anime, NOT pixel art, NOT 3D. Keep ENTIRE character within frame with padding. No flame, no shadow, no halo, no text. TRUE fully transparent alpha background, no colored background, no checkerboard. Character only, no scene. Landscape 1536x1024.",
+      "cutoutPrompt": "Remove the ENTIRE black background and all colored background glows from this image. Preserve ONLY the exact cartoon elf including scarf hat boots and brass jetpack, with identical colors and shapes. Output REAL transparent alpha outside the entire silhouette. No background at all, no halo, no shadow, no checkerboard baked in. A clean production sprite cutout. Keep entire character and padding."
+    }
+  ],
+  "procedural": {
+    "officeFrame": "Independent repeating window mullions, hanging lamps, Christmas garland. 28% world speed.",
+    "world": "Obstacles, gifts and floor at 100% world speed."
+  }
+}

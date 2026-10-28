@@ -1,0 +1,18 @@
+{
+  "generator": "Built-in image_gen",
+  "specs": [
+    [
+      "hazards",
+      "Transparent game asset atlas 1536x1024, exactly 3 columns x 2 rows equal 512 square cells with generous empty padding, each independent isolated object, no labels or grid. Premium hand painted 2D Christmas office arcade game, rich navy enamel, brushed metal copper trim, warm highlights, polished expressive rounded forms with crisp dark contours, side view. Cell top left: full tall office photocopier on small black gold hazard base, stacked papers, small holly ornament. Top middle: vertical electrical trap two copper Tesla terminals at top and bottom connected by thin dark support, clear empty gap between terminals, NO lightning (animated separately). Top right: chunky red navy gold rocket missile pointed LEFT with fins on RIGHT, no flame. Bottom left: floating round navy copper security drone with two rotors and bright amber lens. Bottom middle: ceiling-hung bundle of dark electrical cables with Christmas foliage ending in exposed copper terminals, no lightning. Bottom right: small detailed office coffee vending machine. All full objects contained within cells. Genuine transparent background. No floor scene, no text, no watermark."
+    ],
+    [
+      "office",
+      "Transparent wide isolated game scenery illustration 1536x1024. A sophisticated Christmas office reception vignette for a premium 2D side scrolling game: walnut curved reception counter with warm underlighting, navy panel with small gold PROMODEV wordmark, leather desk chair behind, elegant brass lamp, one monitor, tall plant on left, small lush Christmas tree with red gold ornaments on right, parcels on floor. All objects arranged as one cohesive wide low cluster along same baseline. Side elevation with slight depth, hand painted polished animation film aesthetic, tactile wood metal fabric, navy teal warm cream palette, rich controlled detail, warm highlights and crisp outlines. No room, no walls, no windows, no background, no ground plane beyond small contact shadows. Genuine transparent background. Furniture fills lower two thirds, generous transparent margin, no cropped objects."
+    ],
+    [
+      "explosion",
+      "Transparent sprite sheet exactly 4 columns by 2 rows, 8 equal square cells, 1536x768 canvas. A single premium hand painted 2D cartoon arcade rocket explosion progressing in reading order: frame1 small white hot ignition; frame2 compact yellow core with orange flame petals; frame3 large irregular golden orange fireball with white yellow center; frame4 maximum billowing orange fireburst with sharp sparks; frame5 orange outer flames transitioning to dark blue grey smoke; frame6 warm embers in billowing slate smoke; frame7 dispersed grey smoke tufts with sparse embers; frame8 faint scattered smoke wisps. All frames centered in equal cells with same center anchor and scale, full effect contained inside each cell with transparent spacing, no frame lines, no numbers, no text, no background. Highly polished illustrated effects, expressive organic shapes, convincing lighting, clean silhouettes. Genuine transparent background."
+    ]
+  ],
+  "normalization": "Sharp: fixed atlas cells, alpha trim, WebP encoding. Explosion resized to 1536x768; 8 frames of 384x384."
+}
